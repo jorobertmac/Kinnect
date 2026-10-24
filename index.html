@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kinnect — Family Tree</title>
+  <meta name="description" content="Kinnect helps you build and explore family trees by adding people and connecting them." />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app">
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none">
+            <circle cx="16" cy="10" r="5" stroke="currentColor" stroke-width="2"/>
+            <path d="M8 26c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M6 14h4M22 14h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Kinnect</h1>
+          <p class="tagline">Connect people. Grow your tree.</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button type="button" class="btn btn-ghost" id="btn-theme" title="Toggle theme" aria-label="Toggle theme">
+          <span class="icon-sun">☀️</span>
+          <span class="icon-moon">🌙</span>
+        </button>
+        <button type="button" class="btn btn-ghost" id="btn-export" title="Export data">Export</button>
+        <button type="button" class="btn btn-ghost" id="btn-import" title="Import data">Import</button>
+        <input type="file" id="import-file" accept=".json,application/json" hidden />
+        <button type="button" class="btn btn-primary" id="btn-add-person">+ Add Person</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <!-- Left panel: People & Filters -->
+      <aside class="panel panel-left">
+        <div class="panel-header">
+          <h2>People</h2>
+          <span class="badge" id="people-count">0</span>
+        </div>
+        <div class="search-wrap">
+          <input type="search" id="search-people" placeholder="Search by name…" autocomplete="off" />
+        </div>
+        <div class="people-list" id="people-list" role="list"></div>
+        <div class="empty-state" id="people-empty">
+          <p>No people yet.</p>
+          <p class="muted">Click “+ Add Person” to begin.</p>
+        </div>
+      </aside>
+
+      <!-- Center: Tree canvas -->
+      <section class="panel panel-center">
+        <div class="panel-header tree-toolbar">
+          <h2>Family Tree</h2>
+          <div class="toolbar-actions">
+            <label class="select-label">
+              Focus
+              <select id="focus-person">
+                <option value="">— Select person —</option>
+              </select>
+            </label>
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-zoom-out" title="Zoom out">−</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-zoom-reset" title="Reset zoom">100%</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-zoom-in" title="Zoom in">+</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-fit" title="Fit to view">Fit</button>
+          </div>
+        </div>
+        <div class="tree-viewport" id="tree-viewport">
+          <div class="tree-canvas" id="tree-canvas">
+            <svg id="tree-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+            <div class="tree-empty" id="tree-empty">
+              <div class="tree-empty-icon">🌳</div>
+              <p>Your family tree will appear here.</p>
+              <p class="muted">Add people and connect them with relationships.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right panel: Detail / Relationships -->
+      <aside class="panel panel-right">
+        <div class="panel-header">
+          <h2 id="detail-title">Details</h2>
+        </div>
+        <div id="detail-content" class="detail-content">
+          <div class="empty-state">
+            <p>Select a person to view and edit details, or create relationships.</p>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Modal: Add / Edit Person -->
+  <div class="modal-overlay" id="modal-person" hidden>
+    <div class="modal" role="dialog" aria-labelledby="modal-person-title">
+      <div class="modal-header">
+        <h3 id="modal-person-title">Add Person</h3>
+        <button type="button" class="btn-icon" id="modal-person-close" aria-label="Close">×</button>
+      </div>
+      <form id="form-person" class="modal-body">
+        <input type="hidden" id="person-id" />
+        <div class="form-row">
+          <label for="person-first">First name *</label>
+          <input type="text" id="person-first" required maxlength="80" placeholder="e.g. Ada" />
+        </div>
+        <div class="form-row">
+          <label for="person-last">Last name</label>
+          <input type="text" id="person-last" maxlength="80" placeholder="e.g. Lovelace" />
+        </div>
+        <div class="form-row two-col">
+          <div>
+            <label for="person-birth">Birth date</label>
+            <input type="date" id="person-birth" />
+          </div>
+          <div>
+            <label for="person-death">Death date</label>
+            <input type="date" id="person-death" />
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="person-gender">Gender</label>
+          <select id="person-gender">
+            <option value="">—</option>
+            <option value="female">Female</option>
+            <option value="male">Male</option>
+            <option value="other">Other</option>
+            <option value="unknown">Unknown</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="person-notes">Notes</label>
+          <textarea id="person-notes" rows="3" maxlength="500" placeholder="Optional notes…"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="modal-person-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="modal-person-save">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Relationship -->
+  <div class="modal-overlay" id="modal-rel" hidden>
+    <div class="modal" role="dialog" aria-labelledby="modal-rel-title">
+      <div class="modal-header">
+        <h3 id="modal-rel-title">Add Relationship</h3>
+        <button type="button" class="btn-icon" id="modal-rel-close" aria-label="Close">×</button>
+      </div>
+      <form id="form-rel" class="modal-body">
+        <input type="hidden" id="rel-from-id" />
+        <div class="form-row">
+          <label>From</label>
+          <p class="rel-from-name" id="rel-from-name">—</p>
+        </div>
+        <div class="form-row">
+          <label for="rel-type">Relationship type *</label>
+          <select id="rel-type" required>
+            <option value="">— Select —</option>
+            <option value="parent">is parent of</option>
+            <option value="child">is child of</option>
+            <option value="spouse">is spouse of</option>
+            <option value="partner">is partner of</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="rel-to">To person *</label>
+          <select id="rel-to" required>
+            <option value="">— Select person —</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="rel-date">Date (marriage / partnership)</label>
+          <input type="date" id="rel-date" />
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="modal-rel-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Connect</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" hidden></div>
+</body>
+</html>
