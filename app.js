@@ -12,6 +12,7 @@ import {
   applyTransform,
   setRenderHandlers,
 } from "./modules/render.js";
+import { initMobilePanels } from "./modules/mobile.js";
 import {
   openPersonModal,
   closePersonModal,
@@ -154,6 +155,7 @@ async function init() {
     state.selectedId = state.focusId || state.people[0].id;
   }
   bindEvents();
+  initMobilePanels();
   renderAll();
   requestAnimationFrame(() => setTimeout(fitTree, 50));
 }
